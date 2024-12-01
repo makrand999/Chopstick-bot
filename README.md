@@ -2,6 +2,8 @@
 
 Welcome to the **Chopsticks AI Bot**, a strategic hand game implemented with the **Monte Carlo Tree Search (MCTS)** algorithm. This AI bot allows you to play against a computer opponent in a turn-based game of Chopsticks.
 
+[click here to play](https://makrand999.github.io/Chopstick-bot/)
+
 ---
 
 ## **Game Rules**
