@@ -145,7 +145,7 @@ class GameState:
         )
 
     def __str__(self):
-        return f"AI Hands: {self.AI_hands}, ME Hands: {self.MY_hands} , played : {self.player_turn}"
+        return f"AI Hands: {self.AI_hands}  |  MY Hands: {self.MY_hands}"
 
 class Move:
     def __init__(self, move_type, source_hand=None, target_hand=None, amount=None):
