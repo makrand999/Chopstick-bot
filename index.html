@@ -2,31 +2,125 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Python Terminal</title>
     <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
         #terminal {
             height: 400px;
-            overflow-y: scroll;
-            background-color: #f4f4f4;
-            padding: 10px;
-            font-family: monospace;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a #2c2c2c;
+        }
+        #terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+        #terminal::-webkit-scrollbar-track {
+            background: #2c2c2c;
+        }
+        #terminal::-webkit-scrollbar-thumb {
+            background-color: #4a4a4a;
+            border-radius: 4px;
         }
         #input-container {
             display: flex;
+            background-color: #f1f5f9;
+            padding: 15px;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
         }
         #command-input {
             flex-grow: 1;
-            margin-right: 10px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        #command-input:focus {
+            border-color: #3b82f6;
+        }
+        #submit-input {
+            padding: 10px 20px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        #submit-input:hover {
+            background-color: #2563eb;
+        }
+        #submit-input:active {
+            transform: scale(0.95);
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            #terminal {
+                height: 300px;
+                font-size: 12px;
+            }
+            #input-container {
+                flex-direction: column;
+            }
+            #command-input {
+                margin-right: 0;
+                margin-bottom: 10px;
+                width: 100%;
+            }
+            #submit-input {
+                width: 100%;
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="terminal"></div>
-    <div id="input-container">
-        <input type="text" id="command-input" placeholder="Enter input">
-        <button id="submit-input">Submit</button>
+    <div class="container">
+        <div id="terminal"></div>
+        <div id="input-container">
+            <input type="text" id="command-input" placeholder="Enter your option">
+            <button id="submit-input">conform</button>
+        </div>
     </div>
+
 
     <py-script>
 import js
