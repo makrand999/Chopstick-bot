@@ -429,12 +429,21 @@ async def play_game(terminal):
       
             terminal.write("\nYour turn. Available moves:")
             moves = get_valid_moves(initial_state)
+            n=0
             for i, move in enumerate(moves):
                 terminal.write(f"{i}: {move}")
-        
-            choice = int(await terminal.ainput("Choose move index: "))
-            initial_state = apply_move(initial_state, moves[choice])
-            terminal.write(f"{initial_state}")
+                n+=1
+            while True:
+                temp = await terminal.ainput("Choose move index: ")
+                if not temp.isdigit():
+                    print("Invalid option. Please enter a number.")
+                    continue
+
+                choice = int(temp)
+                if choice < 0 or choice >= n:  # Replace `n` with your valid range limit
+                    print(f"Invalid option. Please choose a number between 0 and {n - 1}.")
+                else:
+                    break
     
         winner = get_winner(initial_state)
         terminal.write(f"\nGame Over! Winner: {winner}")
