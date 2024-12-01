@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Python Terminal</title>
+    <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+    <style>
+        #terminal {
+            height: 400px;
+            overflow-y: scroll;
+            background-color: #f4f4f4;
+            padding: 10px;
+            font-family: monospace;
+        }
+        #input-container {
+            display: flex;
+        }
+        #command-input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+    <div id="input-container">
+        <input type="text" id="command-input" placeholder="Enter input">
+        <button id="submit-input">Submit</button>
+    </div>
+
+    <py-script>
+import js
+import sys
+import asyncio
+import math
+import random
+
+class GameState:
+    def __init__(self, AI_hands=[1, 1], MY_hands=[1, 1], player_turn="MY"):
+        self.AI_hands = AI_hands.copy()
+        self.MY_hands = MY_hands.copy()
+        self.player_turn = player_turn
+        
+        
+
+    def copy(self):
+        return GameState(
+            AI_hands=self.AI_hands.copy(), 
+            MY_hands=self.MY_hands.copy(), 
+            player_turn=self.player_turn
+        )
+
+    def __str__(self):
+        return f"AI Hands: {self.AI_hands}, ME Hands: {self.MY_hands} , played : {self.player_turn}"
+
+class Move:
+    def __init__(self, move_type, source_hand=None, target_hand=None, amount=None):
+        self.type = move_type
+        self.source_hand = source_hand
+        self.target_hand = target_hand
+        self.amount = amount
+        
+
+    def __str__(self):
+        if self.type == "attack":
+            return f"Attack from  {self.source_hand} to  {self.target_hand}"
+        elif self.type == "split":
+            return f"Split: Move {self.amount} to hand {0 if self.source_hand is None else self.source_hand}"
+
+class Node:
+    def __init__(self, state, parent=None, move=None):
+        self.state = state
+        self.parent = parent
+        self.children = []
+        self.visits = 0
+        self.wins = 0
+        self.move = move
+        self.untried_moves = get_valid_moves(state)
+
+class ChopsticksMCTS:
+    def __init__(self, exploration_weight=2.0):
+        self.exploration_weight = exploration_weight
+
+    def search(self, initial_state, num_simulations=1000):
+        root = Node(initial_state)
+        
+        for _ in range(num_simulations):
+            node = self._select(root)
+            result = self._simulate(node.state)
+            self._backpropagate(node, result)
+        
+        # Return the best move
+        return self._get_best_move(root)
+
+    def _select(self, node):
+        while not is_terminal(node.state):
+            if node.untried_moves:
+                return self._expand(node)
+            else:
+                node = self._uct_select(node)
+        return node
+
+    def _expand(self, node):
+        move = node.untried_moves.pop()
+
+        next_state = apply_move(node.state, move)
+        child_node = Node(next_state, parent=node, move=move)
+        node.children.append(child_node)
+        return child_node
+
+    def _simulate(self, state):
+        current_state = state.copy()
+        while not is_terminal(current_state):
+            
+            moves = get_valid_moves(current_state)
+            move = random.choice(moves)
+           # print(move)
+            current_state = apply_move(current_state, move)
+            #print(current_state)
+        return get_winner(current_state)
+
+    def _backpropagate(self, node, result):
+        while node:
+            node.visits += 1
+            if result == node.state.player_turn:
+                node.wins += 1
+            node = node.parent
+
+    def _uct_select(self, node):
+        return max(
+            node.children,
+            key=lambda c: c.wins / c.visits + 
+            self.exploration_weight * math.sqrt(math.log(node.visits) / c.visits)
+        )
+
+    def _get_best_move(self, root):
+        best_child = max(root.children, key=lambda c: c.visits)
+        return best_child.move
+
+def get_valid_moves(state):
+    moves = []
+    if state.player_turn == "MY":
+    
+    # Attack moves with explicit source and target hands
+       for source_hand in range(2):
+         for target_hand in range(2):
+             if (state.AI_hands[source_hand] > 0 and 
+                 state.MY_hands[target_hand] > 0 and (state.AI_hands[source_hand] + state.MY_hands[target_hand] < 6)):
+                    moves.append(Move(
+                    move_type="attack", 
+                    source_hand=source_hand, 
+                    target_hand=target_hand
+                ))
+    
+    # Split moves with more granular options
+       total_fingers = sum(state.AI_hands)
+       live_hands = [i for i in range(2) if state.AI_hands[i] > 0]
+    
+       if total_fingers > 1:
+            for source_hand in range(1):
+                dest_hand = 1 - source_hand
+                total = state.AI_hands[source_hand] + state.AI_hands[dest_hand]
+                for amount in range(0, total + 1):
+              
+                # Only add split moves that change the hand configuration
+                   if amount != state.AI_hands[source_hand] and not (state.AI_hands[dest_hand] == total and amount == total) and not (state.AI_hands[source_hand] == total and amount == 0):
+                        moves.append(Move(
+                        move_type="split", 
+                        source_hand=source_hand, 
+                        amount=amount
+                    ))
+        
+    else:
+        for source_hand in range(2):
+         for target_hand in range(2):
+            if (state.MY_hands[source_hand] > 0 and 
+                state.AI_hands[target_hand] > 0  and ( state.MY_hands[source_hand] + state.AI_hands[target_hand] < 6)):
+                moves.append(Move(
+                    move_type="attack", 
+                    source_hand=source_hand, 
+                    target_hand=target_hand
+                ))
+    
+      # Split moves with more granular options
+        total_fingers = sum(state.MY_hands)
+        live_hands = [i for i in range(2) if state.MY_hands[i] > 0]
+    
+        if total_fingers > 1:
+            for source_hand in range(1):
+                dest_hand = 1 - source_hand
+                total = state.MY_hands[source_hand] + state.MY_hands[dest_hand]
+                for amount in range(0, total + 1):
+             
+                    if amount != state.MY_hands[source_hand] and not (state.MY_hands[dest_hand] == total and amount == total) and not (state.MY_hands[source_hand] == total and amount == 0):
+                        moves.append(Move(
+                            move_type="split", 
+                            source_hand=source_hand, 
+                            amount=amount
+                    ))
+
+    
+    return moves
+
+
+
+def apply_move(state, move):
+    new_state = state.copy()
+    new_state.player_turn = "MY" if state.player_turn == "AI" else "AI"
+    
+   # print(state)
+        # Switch hands based on current AI's turn
+    if new_state.player_turn == "AI":
+            if move.type == "split":
+              source_hand = 0
+              dest_hand = 1 
+            
+              total = state.AI_hands[source_hand] + state.AI_hands[dest_hand] 
+              new_state.AI_hands[source_hand] = move.amount % 5
+              new_state.AI_hands[dest_hand] = ( total - move.amount ) % 5
+            else:
+             target_hand_value = new_state.MY_hands[move.target_hand]
+             source_hand_value = new_state.AI_hands[move.source_hand]
+             new_target_value = (target_hand_value + source_hand_value) % 5
+             new_state.MY_hands[move.target_hand] = new_target_value
+    else:
+            if move.type == "split":
+              total = state.MY_hands[0] + state.MY_hands[1] 
+              new_state.MY_hands[0] = move.amount % 5
+              new_state.MY_hands[1] = (total - move.amount) % 5
+            else:
+              target_hand_value = new_state.AI_hands[move.target_hand]
+              source_hand_value = new_state.MY_hands[move.source_hand]
+              new_target_value = (target_hand_value + source_hand_value) % 5
+              new_state.AI_hands[move.target_hand] = new_target_value
+
+          
+    return new_state
+
+def is_terminal(state):
+    return (state.AI_hands[0] == 0 and state.AI_hands[1] == 0) or \
+           (state.MY_hands[0] == 0 and state.MY_hands[1] == 0)
+
+def get_winner(state):
+    if state.AI_hands == [0, 0]:
+        return "ME"
+    if state.MY_hands == [0, 0]:
+        return "AI"
+    return None
+
+class BrowserInteractiveTerminal:
+    def __init__(self):
+        # Terminal display elements
+        self.terminal_div = js.document.getElementById('terminal')
+        self.input_element = js.document.getElementById('command-input')
+        self.submit_button = js.document.getElementById('submit-input')
+        
+        # Input management
+        self.input_future = None
+        
+        # Redirect stdout
+        self.old_stdout = sys.stdout
+        sys.stdout = self
+        
+        # Attach event listener
+        self.submit_button.onclick = self.handle_input_submission
+
+    def write(self, text):
+        # Append text to terminal
+        p = js.document.createElement('p')
+        p.innerText = str(text)
+        self.terminal_div.appendChild(p)
+        # Auto-scroll to bottom
+        self.terminal_div.scrollTop = self.terminal_div.scrollHeight
+
+    def flush(self):
+        pass
+
+    async def ainput(self, prompt=''):
+        # Print the prompt
+        if prompt:
+            self.write(prompt)
+        
+        # Create a future for input
+        self.input_future = asyncio.Future()
+        
+        # Wait for input
+        return await self.input_future
+
+    def handle_input_submission(self, event=None):
+        # Get input value
+        input_value = self.input_element.value
+        
+        # Clear input field
+        self.input_element.value = ''
+        
+        # Echo the input
+        self.write(f">>> {input_value}")
+        
+        # Complete the future if it exists
+        if self.input_future and not self.input_future.done():
+            self.input_future.set_result(input_value)
+
+async def interactive_script(terminal):
+    try:
+        # Demonstrate multiple inputs
+        name = await terminal.ainput("What is your name? ")
+        age = await terminal.ainput(f"Hello {name}, how old are you? ")
+        terminal.write(f"Nice to meet you, {name}! You are {age} years old.")
+        
+        # More interactive inputs
+        favorite_color = await terminal.ainput("What is your favorite color? ")
+        terminal.write(f"Wow, {favorite_color} is a great color!")
+        
+    except Exception as e:
+        terminal.write(f"An error occurred: {e}")
+
+async def play_game(terminal):
+    try:
+        initial_state = GameState()
+        mcts = ChopsticksMCTS(exploration_weight=1.414)  # Standard exploration weight
+        terminal.write(f"{initial_state}")
+        while not is_terminal(initial_state):
+       
+            move = mcts.search(initial_state, num_simulations=10000)
+        
+            terminal.write("\nAI's chosen move:")
+            terminal.write(f"{move}")
+
+            initial_state = apply_move(initial_state, move)
+            terminal.write(f"{initial_state}")
+            if is_terminal(initial_state):
+                break
+        
+      
+      
+            terminal.write("\nYour turn. Available moves:")
+            moves = get_valid_moves(initial_state)
+            for i, move in enumerate(moves):
+                terminal.write(f"{i}: {move}")
+        
+            choice = int(await terminal.ainput("Choose move index: "))
+            initial_state = apply_move(initial_state, moves[choice])
+            terminal.write(f"{initial_state}")
+    
+        winner = get_winner(initial_state)
+        terminal.write(f"\nGame Over! Winner: {winner}")
+    except Exception as e:
+        terminal.write(f"An error occurred: {e}")
+
+async def main():
+    # Create terminal instance
+    terminal = BrowserInteractiveTerminal()
+    
+    # Run the interactive script
+    #await interactive_script(terminal)
+    await play_game(terminal)
+
+# Create and run the event loop
+asyncio.create_task(main())
+    </py-script>
+</body>
+</html>
