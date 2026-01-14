@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Python Terminal</title>
-    <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+    <script defer src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -122,8 +122,8 @@
     </div>
 
 
-    <py-script>
-import js
+    <script type="py">
+from pyscript import document, window
 import sys
 import asyncio
 import math
@@ -460,6 +460,6 @@ async def main():
 
 # Create and run the event loop
 asyncio.create_task(main())
-    </py-script>
+    </script type="py">
 </body>
 </html>
